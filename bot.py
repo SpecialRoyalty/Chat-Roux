@@ -35,7 +35,7 @@ from telegram.ext import (
     filters,
 )
 
-APP_VERSION = "FINAL_COMPLETE_V25"
+APP_VERSION = "FINAL_COMPLETE_V26"
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = os.getenv("BOT_USERNAME", "").replace("@", "")
@@ -997,7 +997,7 @@ async def trusted_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_silent():
         note = await context.bot.send_message(
             GROUP_ID,
-            f"🚫 Ban trusted appliqué."
+            f"🚫 Ban trusted appliqué. {deleted} message(s) supprimé(s), {banned_hashes} hash média interdit(s)."
         )
         await save_message(GROUP_ID, note.message_id, None, True)
 
@@ -1226,7 +1226,7 @@ async def send_trusted_session_report(context: ContextTypes.DEFAULT_TYPE, sessio
         try:
             await context.bot.send_message(admin_id, text)
         except Exception as e:
-            print(f"TRUSTED REPORT SEND ERROR admin={admin_id}: {e}", flush=True)
+            print(f"TRUSTED REPORT SKIPPED admin={admin_id}: admin must start the bot in private first ({e})", flush=True)
 
 async def close_group_and_clean(context: ContextTypes.DEFAULT_TYPE):
     sid = await current_session_id()
@@ -1533,8 +1533,8 @@ async def save_user_message_if_session(update: Update):
 # PUBLIC MESSAGES V24
 # =========================
 
-MSG_PARTICIPATION_REQUIRED = "⚠️ Merci de participer avant d’envoyer un message.\nEnvoyez au moins 1 photo ou 1 vidéo FR jamais publiée."
-MSG_REPOST = "♻️ Ce média a déjà été publié.Merci d'envoyez un média FR et surtout qui n'a pas tourné 328371 fois"
+MSG_PARTICIPATION_REQUIRED = "⚠️ Merci de participer avant d’envoyer un message.\nEnvoyez au moins 1 photo ou 1 vidéo jamais publiée."
+MSG_REPOST = "♻️ Ce média a déjà été publié."
 MSG_LINK_FORBIDDEN = "🔗 Les liens ne sont pas autorisés."
 MSG_FORWARD_FORBIDDEN = "🚫 Les transferts ne sont pas autorisés."
 MSG_GENERIC_FORBIDDEN = "🚫 Message non autorisé."
@@ -1555,7 +1555,7 @@ def clean_public_reason(reason: str) -> str:
     }
     return mapping.get(reason, MSG_GENERIC_FORBIDDEN)
 
-async def punish_ban(update, context, reason):
+async def punish_ban(update, context, reason, custom_message=None):
     user = update.effective_user
     if not user:
         return
@@ -1573,7 +1573,7 @@ async def punish_ban(update, context, reason):
 
     msg = await context.bot.send_message(
         update.effective_chat.id,
-        clean_public_reason(reason),
+        custom_message or clean_public_reason(reason),
         parse_mode="HTML",
     )
     await save_message(update.effective_chat.id, msg.message_id, None, True)
@@ -1937,7 +1937,7 @@ async def kick_old_non_participants(context):
             try:
                 await context.bot.send_message(admin_id, report)
             except Exception as e:
-                print(f"KICK REPORT SEND ERROR admin={admin_id}: {e}", flush=True)
+                print(f"KICK REPORT SKIPPED admin={admin_id}: admin must start the bot in private first ({e})", flush=True)
 
 
 async def post_rules(context):

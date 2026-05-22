@@ -1,4 +1,4 @@
-# Telegram Railway Bot - FINAL_COMPLETE_V25
+# Telegram Railway Bot - FINAL_COMPLETE_V26
 
 Version cohérente nettoyée.
 
@@ -31,7 +31,7 @@ Version cohérente nettoyée.
 
 Dans les logs :
 
-STARTING FINAL_COMPLETE_V25
+STARTING FINAL_COMPLETE_V26
 
 Si tu vois encore `Vidéos : x/60`, c'est que Railway tourne encore sur une ancienne version.
 
@@ -79,7 +79,7 @@ Message d'avertissement enrichi :
 - Compatible base neuve et ancienne base partiellement migrée.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V25
+STARTING FINAL_COMPLETE_V26
 
 
 ## V22 - Correction complète SQL / hash / anti-repost
@@ -101,7 +101,7 @@ Important :
 - sinon V22 tente de réparer automatiquement le schéma.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V25
+STARTING FINAL_COMPLETE_V26
 
 Test rapide :
 1. envoie une photo ;
@@ -128,7 +128,7 @@ Changements :
   - plus de spam mode raid.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V25
+STARTING FINAL_COMPLETE_V26
 
 
 ## V24 - Textes runtime corrigés
@@ -169,4 +169,17 @@ Correction incluse :
 - fix `MSG_FAKE_COMMAND` si la V24 contenait l'auto-référence cassée.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V25
+STARTING FINAL_COMPLETE_V26
+
+
+## V26 - Fix punish_ban + rapports admin
+
+Corrections :
+- `punish_ban()` accepte maintenant `custom_message=None`.
+- Corrige l'erreur : `punish_ban() takes 3 positional arguments but 4 were given`.
+- Les logs `Chat not found` pour les rapports admin sont clarifiés :
+  l'admin doit ouvrir le bot en privé au moins une fois.
+- Transferts toujours autorisés comme en V25.
+
+Vérification Railway :
+STARTING FINAL_COMPLETE_V26
