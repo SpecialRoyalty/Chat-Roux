@@ -1,4 +1,4 @@
-# Telegram Railway Bot - FINAL_COMPLETE_V26
+# Telegram Railway Bot - FINAL_COMPLETE_V27
 
 Version cohérente nettoyée.
 
@@ -31,7 +31,7 @@ Version cohérente nettoyée.
 
 Dans les logs :
 
-STARTING FINAL_COMPLETE_V26
+STARTING FINAL_COMPLETE_V27
 
 Si tu vois encore `Vidéos : x/60`, c'est que Railway tourne encore sur une ancienne version.
 
@@ -79,7 +79,7 @@ Message d'avertissement enrichi :
 - Compatible base neuve et ancienne base partiellement migrée.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V26
+STARTING FINAL_COMPLETE_V27
 
 
 ## V22 - Correction complète SQL / hash / anti-repost
@@ -101,7 +101,7 @@ Important :
 - sinon V22 tente de réparer automatiquement le schéma.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V26
+STARTING FINAL_COMPLETE_V27
 
 Test rapide :
 1. envoie une photo ;
@@ -128,7 +128,7 @@ Changements :
   - plus de spam mode raid.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V26
+STARTING FINAL_COMPLETE_V27
 
 
 ## V24 - Textes runtime corrigés
@@ -169,7 +169,7 @@ Correction incluse :
 - fix `MSG_FAKE_COMMAND` si la V24 contenait l'auto-référence cassée.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V26
+STARTING FINAL_COMPLETE_V27
 
 
 ## V26 - Fix punish_ban + rapports admin
@@ -182,4 +182,23 @@ Corrections :
 - Transferts toujours autorisés comme en V25.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V26
+STARTING FINAL_COMPLETE_V27
+
+
+## V27 - Hash robuste + message dissuasion modération
+
+Ajouts :
+- `MAX_HASH_FILE_MB=20`
+- Si un média est trop gros :
+  - pas de crash ;
+  - pas de hash ;
+  - participation non validée avec ce média ;
+  - log : `HASH SKIPPED: file too big`.
+
+Message dissuasion :
+- toutes les 20 minutes pendant ouverture si sanctions > 0 ;
+- supprimé automatiquement après 3 minutes ;
+- affiche suppressions, exclusions et restrictions.
+
+Vérification Railway :
+STARTING FINAL_COMPLETE_V27
