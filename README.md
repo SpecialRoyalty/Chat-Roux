@@ -1,4 +1,4 @@
-# Telegram Railway Bot - FINAL_COMPLETE_V29
+# Telegram Railway Bot - FINAL_COMPLETE_V30_FRAMEHASH
 
 Version cohérente nettoyée.
 
@@ -31,7 +31,7 @@ Version cohérente nettoyée.
 
 Dans les logs :
 
-STARTING FINAL_COMPLETE_V29
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
 
 Si tu vois encore `Vidéos : x/60`, c'est que Railway tourne encore sur une ancienne version.
 
@@ -79,7 +79,7 @@ Message d'avertissement enrichi :
 - Compatible base neuve et ancienne base partiellement migrée.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V29
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
 
 
 ## V22 - Correction complète SQL / hash / anti-repost
@@ -101,7 +101,7 @@ Important :
 - sinon V22 tente de réparer automatiquement le schéma.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V29
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
 
 Test rapide :
 1. envoie une photo ;
@@ -128,7 +128,7 @@ Changements :
   - plus de spam mode raid.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V29
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
 
 
 ## V24 - Textes runtime corrigés
@@ -169,7 +169,7 @@ Correction incluse :
 - fix `MSG_FAKE_COMMAND` si la V24 contenait l'auto-référence cassée.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V29
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
 
 
 ## V26 - Fix punish_ban + rapports admin
@@ -182,7 +182,7 @@ Corrections :
 - Transferts toujours autorisés comme en V25.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V29
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
 
 
 ## V27 - Hash robuste + message dissuasion modération
@@ -201,7 +201,7 @@ Message dissuasion :
 - affiche suppressions, exclusions et restrictions.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V29
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
 
 
 ## V28 - Fix trusted mute
@@ -214,7 +214,7 @@ Correction :
 - Un trusted qui utilise ces commandes n'est jamais mute par ce système.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V29
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
 
 
 ## V29 - Priorité média interdit + trusted silencieux
@@ -230,4 +230,23 @@ Corrections :
 - `/supprimer` reste alias officiel de `/supprime`.
 
 Vérification Railway :
-STARTING FINAL_COMPLETE_V29
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
+
+
+## V30_FRAMEHASH - Hash visuel photo + première frame vidéo
+
+Cette version part de la V29 et change la logique média :
+
+- Photo : hash visuel de l'image.
+- Vidéo MP4/MOV : extraction de la toute première frame réelle, puis hash visuel.
+- Le SHA fichier et file_unique_id restent en bonus, mais ne sont plus le coeur de la détection.
+- Un média interdit est toujours vérifié avant le repost simple.
+- Les tables existantes ne cassent pas : les nouveaux hash sont stockés dans les mêmes colonnes TEXT existantes.
+- Les anciens hash restent en base, mais les nouveaux médias seront enregistrés avec les nouvelles empreintes.
+
+Dépendances ajoutées :
+- Pillow
+- opencv-python-headless
+
+Vérification Railway :
+STARTING FINAL_COMPLETE_V30_FRAMEHASH
