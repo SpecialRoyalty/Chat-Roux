@@ -2080,7 +2080,7 @@ async def warn_non_participants(context):
 
 
         txt = (
-            "⚠️ Si vous êtes mentionné, vous n'avez jamais participé.\n\n ⚠️"
+            "⚠️ Si vous êtes mentionné, vous n'avez jamais participé ⚠️.\n\n"
             "Veuillez participer si vous voulez rester dans le groupe.\n\n"
             "Envoyez au moins 1 photo ou 1 vidéo jamais publiée si vous voulez rester dans le groupe.\n\n"
             "C'est un groupe de participation.\n\n"
