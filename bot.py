@@ -39,7 +39,7 @@ from telegram.ext import (
     filters,
 )
 
-APP_VERSION = "FINAL_COMPLETE_V50_GRACE_FIX"
+APP_VERSION = "FINAL_COMPLETE_V57_WORD_BOUNDARY_FIX"
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = os.getenv("BOT_USERNAME", "").replace("@", "")
@@ -128,6 +128,16 @@ async def init_db():
             created_at TIMESTAMP DEFAULT NOW()
         )
         """)
+        await con.execute("""
+        CREATE TABLE IF NOT EXISTS restricted_users(
+            user_id BIGINT PRIMARY KEY,
+            reason TEXT,
+            restricted_until TIMESTAMP,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+        """)
+
         await con.execute("""
         CREATE TABLE IF NOT EXISTS user_violations(
             user_id BIGINT PRIMARY KEY,
@@ -552,8 +562,6 @@ def is_trusted_or_super(user_id: int) -> bool:
 
 def is_protected_user(user_id: int) -> bool:
     return is_admin(user_id) or user_id in TRUSTED_IDS or user_id in SUPER_TRUSTED_IDS
-
-
 
 
 async def is_group_admin(context, user_id: int) -> bool:
@@ -1017,8 +1025,6 @@ async def main_keyboard():
         [InlineKeyboardButton(f"📢 Pub 2 {led(ad2_enabled)}", callback_data="toggle:ad2_enabled"), InlineKeyboardButton("✏️ Texte Pub 2", callback_data="set_ad2_text")],
         [InlineKeyboardButton("📣 Publicité partage", callback_data="share_publicity_menu")],
         [InlineKeyboardButton("📢 Broadcast privé", callback_data="broadcast_private_set")],
-        [InlineKeyboardButton("👑 Grâce présidentielle", callback_data="grace_presidentielle")],
-        [InlineKeyboardButton("🏛️ Grâce ministérielle", callback_data="grace_ministerielle")],
         [InlineKeyboardButton("📡 Rediffusion ON/OFF", callback_data="toggle_rediffusion")],
         [InlineKeyboardButton(f"🏆 Classement {led(leaderboard_enabled)}", callback_data="toggle:leaderboard_enabled")],
         [InlineKeyboardButton("📊 Stats parrainage", callback_data="ref_stats")],
@@ -1129,7 +1135,6 @@ async def table_has_setting(key):
         return False
 
 
-
 async def safe_answer_callback(q):
     try:
         # IMPORTANT: must call Telegram's original callback answer.
@@ -1167,7 +1172,6 @@ async def show_panel(query, extra=""):
 
 
 # ---------------- START / CALLBACKS ----------------
-
 
 
 # =========================
@@ -1564,9 +1568,6 @@ async def build_referral_leaderboard_text(limit: int = 10):
     return await build_leaderboard_text()
 
 
-
-
-
 async def track_private_user(user):
     if not user:
         return
@@ -1739,9 +1740,6 @@ async def send_share_link_private(update: Update, context: ContextTypes.DEFAULT_
         f"{rank_line}\n\n"
         "Partagez ce lien pour monter dans le classement."
     )
-
-
-
 
 
 async def super_trusted_keyboard():
@@ -2114,16 +2112,6 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await safe_edit(q, "📡 Rediffusion : OFF\nAucun média ne sera copié.", reply_markup=await main_keyboard())
         return
 
-    if data == "grace_presidentielle":
-        count = await grace_presidentielle(context)
-        await safe_edit(q, f"👑 Grâce présidentielle appliquée.\nPersonnes débannies : {count}\nLes hash interdits sont conservés.", reply_markup=await main_keyboard())
-        return
-
-    if data == "grace_ministerielle":
-        count = await grace_ministerielle(context)
-        await safe_edit(q, f"🏛️ Grâce ministérielle appliquée.\nRestrictions/mutes levés : {count}\nAucun ban permanent débanni.", reply_markup=await main_keyboard())
-        return
-
     if data == "share_publicity_menu":
         text = (
             "📣 PUBLICITÉ PARTAGE\n\n"
@@ -2203,8 +2191,6 @@ async def open_group(context: ContextTypes.DEFAULT_TYPE):
     await context.bot.set_chat_permissions(GROUP_ID, perms)
     await send_system_message(context, "🟢 Groupe ouvert, vous pouvez envoyer tous vos médias.", "open", record_in_session=True)
     print(f"SESSION OPEN {sid}", flush=True)
-
-
 
 
 async def send_trusted_session_report(context: ContextTypes.DEFAULT_TYPE, session_id: int, deleted_count: int):
@@ -2613,8 +2599,6 @@ async def save_user_message_if_session(update: Update):
     )
 
 
-
-
 async def trusted_pasfr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg=update.message; actor=update.effective_user
     if not msg or not actor: return
@@ -2647,14 +2631,30 @@ def user_mention(user) -> str:
     return f'<a href="tg://user?id={user.id}">{user.first_name or "membre"}</a>'
 
 
-async def restrict_user_days(context, user_id: int, days: int):
+async def restrict_user_days(context, user_id: int, days: int, reason: str = "restriction"):
     until = datetime.now(TZ) + timedelta(days=days)
-    await context.bot.restrict_chat_member(GROUP_ID, user_id, ChatPermissions(can_send_messages=False), until_date=until)
+    await context.bot.restrict_chat_member(
+        GROUP_ID,
+        user_id,
+        ChatPermissions(can_send_messages=False),
+        until_date=until,
+    )
+    try:
+        async with db_pool.acquire() as con:
+            await con.execute("""
+            INSERT INTO restricted_users(user_id,reason,restricted_until,created_at,updated_at)
+            VALUES($1,$2,$3,NOW(),NOW())
+            ON CONFLICT(user_id) DO UPDATE SET
+                reason=$2,
+                restricted_until=$3,
+                updated_at=NOW()
+            """, user_id, reason, until.replace(tzinfo=None))
+    except Exception as e:
+        print(f"RESTRICTED_USERS TRACK ERROR user={user_id}: {e}", flush=True)
 
 
 async def unrestrict_user(context, user_id: int):
-    # V50 : grâce ministérielle = lever les restrictions.
-    # On remet explicitement tous les droits d'envoi possibles.
+    # V51 : lève uniquement une restriction connue/suivie.
     permissions = ChatPermissions(
         can_send_messages=True,
         can_send_audios=True,
@@ -2679,15 +2679,16 @@ async def unrestrict_user(context, user_id: int):
             permissions=permissions,
             until_date=None,
         )
-        return True
     except TypeError:
-        # Compatibilité anciennes versions PTB.
-        await context.bot.restrict_chat_member(
-            GROUP_ID,
-            user_id,
-            permissions,
-        )
-        return True
+        await context.bot.restrict_chat_member(GROUP_ID, user_id, permissions)
+
+    try:
+        async with db_pool.acquire() as con:
+            await con.execute("DELETE FROM restricted_users WHERE user_id=$1", user_id)
+    except Exception as e:
+        print(f"RESTRICTED_USERS DELETE ERROR user={user_id}: {e}", flush=True)
+
+    return True
 
 
 async def fake_command_punish(update, context):
@@ -2704,58 +2705,6 @@ async def fake_command_punish(update, context):
     except Exception as e:
         print(f"FAKE COMMAND MUTE ERROR: {e}", flush=True)
     await send_public_warning(context, GROUP_ID, MSG_FAKE_COMMAND, seconds=180)
-
-
-async def grace_presidentielle(context):
-    async with db_pool.acquire() as con:
-        ids=set()
-        for table,col in [("danger_scores","user_id"),("user_violations","user_id"),("participants","user_id"),("messages","user_id")]:
-            try:
-                rows=await con.fetch(f"SELECT DISTINCT {col} AS user_id FROM {table} WHERE {col} IS NOT NULL")
-                ids.update(int(r["user_id"]) for r in rows if r["user_id"])
-            except Exception:
-                pass
-    count=0
-    for uid in ids:
-        if is_protected_user(uid):
-            continue
-        try:
-            await context.bot.unban_chat_member(GROUP_ID, uid, only_if_banned=True)
-            count+=1
-            await asyncio.sleep(0.03)
-        except Exception:
-            pass
-    return count
-
-
-async def grace_ministerielle(context):
-    # Rétroactif pour les personnes connues en base : retire les restrictions/mutes.
-    async with db_pool.acquire() as con:
-        ids = set()
-        for table, col in [
-            ("danger_scores", "user_id"),
-            ("user_violations", "user_id"),
-            ("participants", "user_id"),
-            ("messages", "user_id"),
-        ]:
-            try:
-                rows = await con.fetch(f"SELECT DISTINCT {col} AS user_id FROM {table} WHERE {col} IS NOT NULL")
-                ids.update(int(r["user_id"]) for r in rows if r["user_id"])
-            except Exception:
-                pass
-
-    count = 0
-    for uid in ids:
-        if is_protected_user(uid):
-            continue
-        try:
-            ok = await unrestrict_user(context, uid)
-            if ok:
-                count += 1
-            await asyncio.sleep(0.03)
-        except Exception as e:
-            print(f"GRACE MINISTERIELLE UNRESTRICT ERROR user={uid}: {e}", flush=True)
-    return count
 
 
 async def validate_rediffusion_target(context):
@@ -2839,6 +2788,29 @@ async def punish_media_mention_ad(update, context):
     await send_public_warning(context, GROUP_ID, "🚫 Tentative de publicité interdite.", seconds=180)
 
 
+def contains_forbidden_token(text: str, pattern: str) -> bool:
+    """
+    V57:
+    Détecte un mot/motif entier, pas une sous-partie.
+    Exemple:
+    - pattern hi ne match PAS Mathias
+    - pattern hi match hi, hi_123, hello-hi, hi.abc
+    - pattern 100x100 match 100x100
+    """
+    if not text or not pattern:
+        return False
+
+    text = text.lower()
+    pattern = pattern.lower().strip()
+    if not pattern:
+        return False
+
+    # Les lettres/chiffres restent dans le même token.
+    # Tout le reste est séparateur: espace, _, -, ., emoji, etc.
+    rx = rf'(?<![a-z0-9]){re.escape(pattern)}(?![a-z0-9])'
+    return re.search(rx, text, re.I) is not None
+
+
 async def username_is_forbidden(user) -> bool:
     if not user or is_protected_user(user.id):
         return False
@@ -2851,7 +2823,7 @@ async def username_is_forbidden(user) -> bool:
         return False
     async with db_pool.acquire() as con:
         rows = await con.fetch("SELECT pattern FROM forbidden_usernames")
-    return any((r["pattern"] or "").lower().strip() and (r["pattern"] or "").lower().strip() in full for r in rows)
+    return any((r["pattern"] or "").lower().strip() and contains_forbidden_token(full, (r["pattern"] or "").lower().strip()) for r in rows)
 
 
 async def display_user_for_alert(user):
@@ -2912,7 +2884,7 @@ async def ban_for_forbidden_username(context, user):
                 rows = await con.fetch("SELECT pattern FROM forbidden_usernames")
             for r in rows:
                 p = (r["pattern"] or "").lower().strip()
-                if p and p in full:
+                if p and contains_forbidden_token(full, p):
                     matched_pattern = p
                     break
         except Exception:
@@ -3097,7 +3069,7 @@ async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             hard_words = await con.fetch("SELECT word FROM banned_words_hard")
         for r in hard_words:
             word = (r["word"] or "").lower()
-            if word and re.search(rf"\b{re.escape(word)}\b", text, re.I):
+            if word and contains_forbidden_token(text, word):
                 await punish_ban(update, context, "mot banni", MSG_GENERIC_FORBIDDEN)
                 await alert_auto_ban(context, user, "mot banni dans le message", word)
                 return
@@ -3108,7 +3080,7 @@ async def handle_group_message(update: Update, context: ContextTypes.DEFAULT_TYP
             words = await con.fetch("SELECT word FROM banned_words")
         for r in words:
             word = r["word"].lower()
-            if word and re.search(rf"\b{re.escape(word)}\b", text, re.I):
+            if word and contains_forbidden_token(text, word):
                 await punish_word(update, context)
                 return
 
@@ -3184,8 +3156,6 @@ async def chat_member_update(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if new_status in ("left", "kicked"):
         async with db_pool.acquire() as con:
             await con.execute("DELETE FROM pending_joins WHERE invited_user_id=$1", user.id)
-
-
 
 
 # ---------------- PARTICIPATION / RULES ----------------
@@ -3309,7 +3279,6 @@ async def kick_old_non_participants(context):
                 await context.bot.send_message(admin_id, report)
             except Exception as e:
                 print(f"KICK REPORT SKIPPED admin={admin_id}: admin must start the bot in private first ({e})", flush=True)
-
 
 
 async def publish_campaign_ad(context: ContextTypes.DEFAULT_TYPE):
